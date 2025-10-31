@@ -4,9 +4,9 @@ Analysis of tags and their relationships with recipe metrics
 """
 
 import ast
-from typing import Dict, List, Tuple, Any
-import streamlit as st
+from typing import Dict, List, Tuple, Any, Iterable
 
+import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -71,7 +71,6 @@ def parse_tags(tags_series: pd.Series) -> pd.Series:
     Returns:
         Series with tags parsed as lists
     """
-
     def safe_parse(x):
         try:
             if pd.isna(x):
@@ -84,23 +83,13 @@ def parse_tags(tags_series: pd.Series) -> pd.Series:
 
 
 def get_all_tags_of_interest() -> List[str]:
-    """
-    Return the list of all tags of interest.
-
-    Returns:
-        List of all tags of interest
-    """
+    """Return the list of all tags of interest."""
     return [tag for category in TAGS_OF_INTEREST.values() for tag in category]
 
 
 def create_tag_category_mapping() -> Dict[str, str]:
-    """
-    Create a dictionary mapping tag -> category.
-
-    Returns:
-        Dictionary {tag: category}
-    """
-    category_map = {}
+    """Create a dictionary mapping tag -> category."""
+    category_map: Dict[str, str] = {}
     for category, tags in TAGS_OF_INTEREST.items():
         for tag in tags:
             category_map[tag] = category
@@ -112,32 +101,26 @@ def get_general_tags_statistics(recipes_df: pd.DataFrame) -> Dict[str, Any]:
     Calculate general statistics on tags.
 
     Args:
-        recipes_df: DataFrame (ou proxy) contenant une colonne 'tags'
+        recipes_df: DataFrame (or proxy) containing a 'tags' column
 
     Returns:
-        Dictionnaire des statistiques générales
+        Dictionary of general statistics
     """
-
-    # Extraire la colonne 'tags' sans modifier le DataFrame d'origine
     if "tags" not in recipes_df.columns:
         raise KeyError("La colonne 'tags' est absente du DataFrame fourni.")
 
-    tags_series = recipes_df["tags"]
+    # Parse tags into lists
+    tags_parsed = parse_tags(recipes_df["tags"])
 
-    # Parser les tags (en gardant une nouvelle série)
-    tags_parsed = parse_tags(tags_series)
+    # Number of tags per recipe (vectorized)
+    tags_per_recipe = tags_parsed.str.len()
 
-    # Nombre de tags par recette
-    tags_per_recipe = tags_parsed.apply(len)
+    # Flatten all tags into a single series using explode
+    tags_exploded = tags_parsed.explode()
 
-    # Concaténer tous les tags dans une liste
-    all_tags: Iterable[str] = []
-    for tags_list in tags_parsed:
-        all_tags.extend(tags_list)
-
-    # Comptage des occurrences
-    tag_counts = pd.Series(all_tags).value_counts()
-    avg_tags_general = len(all_tags) / len(tag_counts) if len(tag_counts) > 0 else 0
+    # Count occurrences
+    tag_counts = tags_exploded.value_counts()
+    avg_tags_general = tags_per_recipe.sum() / len(tag_counts) if len(tag_counts) > 0 else 0
 
     stats = {
         "total_recipes": len(recipes_df),
@@ -147,13 +130,13 @@ def get_general_tags_statistics(recipes_df: pd.DataFrame) -> Dict[str, Any]:
         "tags_per_recipe_min": tags_per_recipe.min(),
         "tags_per_recipe_max": tags_per_recipe.max(),
         "total_unique_tags": len(tag_counts),
-        "total_tags": len(all_tags),
+        "total_tags": tags_per_recipe.sum(),
         "avg_tags_general": avg_tags_general,
         "tag_counts_stats": tag_counts.describe(),
         "top_20_tags": tag_counts.head(20),
     }
-
     return stats
+
 
 def analyze_tags_distribution(recipes_df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -163,21 +146,18 @@ def analyze_tags_distribution(recipes_df: pd.DataFrame) -> pd.DataFrame:
         recipes_df: DataFrame containing a 'tags' column
 
     Returns:
-        DataFrame with statistics per tag
+        DataFrame with two columns: tag and count
     """
-    # Parse tags
     if "tags_parsed" not in recipes_df.columns:
         recipes_df["tags_parsed"] = parse_tags(recipes_df["tags"])
 
-    # Create a list of all tags
-    all_tags = []
-    for tags_list in recipes_df["tags_parsed"]:
-        all_tags.extend(tags_list)
-
-    # Count occurrences
-    tag_counts = pd.Series(all_tags).value_counts().reset_index()
-    tag_counts.columns = ["tag", "count"]
-
+    tag_counts = (
+        recipes_df["tags_parsed"]
+        .explode()
+        .value_counts()
+        .reset_index()
+        .rename(columns={"index": "tag", "tags_parsed": "count"})
+    )
     return tag_counts
 
 
@@ -194,72 +174,55 @@ def create_tag_recipes_dataset(
     Returns:
         Tuple (tag_stats, tag_recipes_df)
     """
-    # Parse tags
+    # Ensure tags_parsed column exists
     if "tags_parsed" not in recipes_df.columns:
         recipes_df["tags_parsed"] = parse_tags(recipes_df["tags"])
 
-    # Create one row per tag-recipe pair
-    tag_recipe_pairs = []
-    for idx, row in recipes_df.iterrows():
-        for tag in row["tags_parsed"]:
-            tag_recipe_pairs.append(
-                {
-                    "tag": tag,
-                    "recipe_id": row.get("id", idx),
-                    "minutes": row.get("minutes", 0),
-                    "n_ingredients": row.get("n_ingredients", 0),
-                    "n_steps": row.get("n_steps", 0),
-                }
-            )
+    # Select needed columns and explode tags
+    cols = ["id", "tags_parsed", "minutes", "n_ingredients", "n_steps"]
+    df_exp = (
+        recipes_df[cols]
+        .explode("tags_parsed")
+        .dropna(subset=["tags_parsed"])
+        .rename(columns={"tags_parsed": "tag", "id": "recipe_id"})
+    )
 
-    tag_recipes_df = pd.DataFrame(tag_recipe_pairs)
-
-    # Statistics per tag
+    # Aggregate statistics per tag
     tag_stats = (
-        tag_recipes_df.groupby("tag")
+        df_exp.groupby("tag")
         .agg(
-            {
-                "recipe_id": "count",
-                "minutes": "mean",
-                "n_ingredients": "mean",
-                "n_steps": "mean",
-            }
+            n_recipes=("recipe_id", "count"),
+            avg_minutes=("minutes", "mean"),
+            avg_ingredients=("n_ingredients", "mean"),
+            avg_steps=("n_steps", "mean"),
         )
         .reset_index()
     )
 
-    tag_stats.columns = [
-        "tag",
-        "n_recipes",
-        "avg_minutes",
-        "avg_ingredients",
-        "avg_steps",
-    ]
-
     # Filter tags with enough recipes
-    tag_stats = tag_stats[tag_stats["n_recipes"] >= min_recipes_per_tag].copy()
-    tag_stats = tag_stats.sort_values("n_recipes", ascending=False)
+    tag_stats = (
+        tag_stats[tag_stats["n_recipes"] >= min_recipes_per_tag]
+        .sort_values("n_recipes", ascending=False)
+        .reset_index(drop=True)
+    )
 
-    return tag_stats, tag_recipes_df
+    return tag_stats, df_exp
 
 
 def filter_tags_of_interest(tag_stats: pd.DataFrame) -> pd.DataFrame:
     """
-    Filter dataset to keep only tags of interest.
+    Filter dataset to keep only tags of interest and add category column.
 
     Args:
         tag_stats: DataFrame with statistics per tag
 
     Returns:
-        Filtered DataFrame with 'category' column added
+        Filtered DataFrame with a 'category' column
     """
     all_tags = get_all_tags_of_interest()
     df_filtered = tag_stats[tag_stats["tag"].isin(all_tags)].copy()
-
-    # Add category
     category_map = create_tag_category_mapping()
     df_filtered["category"] = df_filtered["tag"].map(category_map)
-
     return df_filtered
 
 
@@ -267,22 +230,15 @@ def plot_top_tags_by_metric(
     tag_stats: pd.DataFrame,
     metric: str = "n_recipes",
     top_n: int = 20,
-    title: str = None,
+    title: str | None = None,
 ) -> plt.Figure:
     """
     Create a chart of top N tags by a metric.
-
-    Args:
-        tag_stats: DataFrame with statistics per tag
-        metric: Metric to use for ranking
-        top_n: Number of tags to display
-        title: Chart title
 
     Returns:
         Matplotlib Figure
     """
     df_top = tag_stats.nlargest(top_n, metric)
-
     metric_labels = {
         "n_recipes": "Number of recipes",
         "avg_minutes": "Average time (min)",
@@ -294,8 +250,6 @@ def plot_top_tags_by_metric(
         title = f"Top {top_n} tags by {metric_labels.get(metric, metric)}"
 
     fig, ax = plt.subplots(figsize=(10, max(8, top_n * 0.4)))
-
-    # Create horizontal bar chart
     colors = plt.cm.viridis(df_top[metric].values / df_top[metric].values.max())
     ax.barh(range(len(df_top)), df_top[metric].values, color=colors)
 
@@ -315,38 +269,29 @@ def create_heatmap_tags_metrics(tag_stats_filtered: pd.DataFrame) -> plt.Figure:
     """
     Create a heatmap of tags vs metrics.
 
-    Args:
-        tag_stats_filtered: DataFrame with filtered tags
-
     Returns:
         Matplotlib Figure
     """
-    # Select metrics and normalize
     metrics = ["avg_minutes", "avg_ingredients", "avg_steps"]
     df_norm = tag_stats_filtered.copy()
-
     for metric in metrics:
         min_val = df_norm[metric].min()
         max_val = df_norm[metric].max()
         df_norm[f"{metric}_norm"] = (df_norm[metric] - min_val) / (max_val - min_val)
 
-    # Prepare data for heatmap
     metric_labels = ["Time", "Ingredients", "Steps"]
     z_data = df_norm[
         ["avg_minutes_norm", "avg_ingredients_norm", "avg_steps_norm"]
     ].T.values
 
     fig, ax = plt.subplots(figsize=(max(12, len(df_norm) * 0.3), 5))
-
     im = ax.imshow(z_data, cmap="viridis", aspect="auto")
 
-    # Set ticks
     ax.set_xticks(range(len(df_norm)))
     ax.set_xticklabels(df_norm["tag"].values, rotation=90, ha="right")
     ax.set_yticks(range(len(metric_labels)))
     ax.set_yticklabels(metric_labels)
 
-    # Add colorbar
     cbar = plt.colorbar(im, ax=ax)
     cbar.set_label("Normalized value", rotation=270, labelpad=20)
 
@@ -359,29 +304,18 @@ def create_heatmap_tags_metrics(tag_stats_filtered: pd.DataFrame) -> plt.Figure:
 
 
 def get_summary_statistics(tag_stats_filtered: pd.DataFrame) -> pd.DataFrame:
-    """
-    Calculate summary statistics by category.
-
-    Args:
-        tag_stats_filtered: DataFrame with filtered tags
-
-    Returns:
-        DataFrame with statistics by category
-    """
+    """Calculate summary statistics by category."""
     summary = (
         tag_stats_filtered.groupby("category")
         .agg(
-            {
-                "tag": "count",
-                "n_recipes": "sum",
-                "avg_minutes": "mean",
-                "avg_ingredients": "mean",
-                "avg_steps": "mean",
-            }
+            tag=("tag", "count"),
+            n_recipes=("n_recipes", "sum"),
+            avg_minutes=("avg_minutes", "mean"),
+            avg_ingredients=("avg_ingredients", "mean"),
+            avg_steps=("avg_steps", "mean"),
         )
         .round(2)
     )
-
     summary.columns = [
         "Number of tags",
         "Total recipes",
@@ -389,8 +323,7 @@ def get_summary_statistics(tag_stats_filtered: pd.DataFrame) -> pd.DataFrame:
         "Average ingredients",
         "Average steps",
     ]
-
-    return summary
+    return summary.reset_index()
 
 
 def find_best_tags(
@@ -399,14 +332,10 @@ def find_best_tags(
     """
     Identify the best tags according to different criteria.
 
-    Args:
-        tag_stats_filtered: DataFrame with filtered tags
-        top_n: Number of tags to return per criterion
-
     Returns:
         Dictionary {criterion: DataFrame}
     """
-    results = {
+    return {
         "Fastest": tag_stats_filtered.nsmallest(top_n, "avg_minutes")[
             ["tag", "category", "avg_minutes", "n_recipes"]
         ],
@@ -421,41 +350,17 @@ def find_best_tags(
         ],
     }
 
-    return results
-
 
 def plot_tags_per_recipe_distribution(recipes_df: pd.DataFrame) -> None:
-    """
-    Create and display a histogram of the distribution of tags per recipe.
-
-    Args:
-        recipes_df: DataFrame containing a 'tags_parsed' column
-    """
-    tags_per_recipe = recipes_df["tags_parsed"].apply(len)
-
+    """Create and display a histogram of the distribution of tags per recipe."""
+    tags_per_recipe = recipes_df["tags_parsed"].str.len()
     fig, ax = plt.subplots(figsize=(10, 6))
-
-    # Create histogram
     ax.hist(tags_per_recipe, bins=50, color="#636EFA", alpha=0.7, edgecolor="black")
 
-    # Add mean and median lines
     mean_val = tags_per_recipe.mean()
     median_val = tags_per_recipe.median()
-
-    ax.axvline(
-        mean_val,
-        color="red",
-        linestyle="--",
-        linewidth=2,
-        label=f"Mean: {mean_val:.1f}",
-    )
-    ax.axvline(
-        median_val,
-        color="green",
-        linestyle="--",
-        linewidth=2,
-        label=f"Median: {median_val:.1f}",
-    )
+    ax.axvline(mean_val, color="red", linestyle="--", linewidth=2, label=f"Mean: {mean_val:.1f}")
+    ax.axvline(median_val, color="green", linestyle="--", linewidth=2, label=f"Median: {median_val:.1f}")
 
     ax.set_xlabel("Number of tags per recipe", fontsize=12)
     ax.set_ylabel("Number of recipes", fontsize=12)
@@ -469,18 +374,9 @@ def plot_tags_per_recipe_distribution(recipes_df: pd.DataFrame) -> None:
 
 
 def plot_top_tags(tag_counts: pd.Series, top_n: int = 20) -> None:
-    """
-    Create and display a chart of the most frequent tags.
-
-    Args:
-        tag_counts: Series with tag counts
-        top_n: Number of tags to display
-    """
+    """Create and display a chart of the most frequent tags."""
     top_tags = tag_counts.head(top_n)
-
     fig, ax = plt.subplots(figsize=(10, max(8, top_n * 0.4)))
-
-    # Create horizontal bar chart
     colors = plt.cm.viridis(top_tags.values / top_tags.values.max())
     ax.barh(range(len(top_tags)), top_tags.values, color=colors)
 
@@ -498,15 +394,8 @@ def plot_top_tags(tag_counts: pd.Series, top_n: int = 20) -> None:
 
 
 def plot_tag_frequency_distribution(tag_counts: pd.Series) -> None:
-    """
-    Create and display a histogram of tag frequency distribution.
-
-    Args:
-        tag_counts: Series with tag counts
-    """
+    """Create and display a histogram of tag frequency distribution."""
     fig, ax = plt.subplots(figsize=(10, 6))
-
-    # Create histogram with log scale on y-axis
     ax.hist(tag_counts.values, bins=50, color="#EF553B", alpha=0.7, edgecolor="black")
     ax.set_yscale("log")
 
@@ -521,27 +410,19 @@ def plot_tag_frequency_distribution(tag_counts: pd.Series) -> None:
 
 
 def plot_categories_comparison(tag_stats_filtered: pd.DataFrame) -> None:
-    """
-    Compare and display tag categories across multiple metrics.
-
-    Args:
-        tag_stats_filtered: DataFrame with filtered tags and 'category' column
-    """
+    """Compare and display tag categories across multiple metrics."""
     category_stats = (
         tag_stats_filtered.groupby("category")
         .agg(
-            {
-                "avg_minutes": "mean",
-                "avg_ingredients": "mean",
-                "avg_steps": "mean",
-                "n_recipes": "sum",
-            }
+            avg_minutes=("avg_minutes", "mean"),
+            avg_ingredients=("avg_ingredients", "mean"),
+            avg_steps=("avg_steps", "mean"),
+            n_recipes=("n_recipes", "sum"),
         )
         .reset_index()
     )
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-
     metrics = [
         ("avg_minutes", "Average time (min)", axes[0, 0]),
         ("avg_ingredients", "Average ingredients", axes[0, 1]),
@@ -575,22 +456,13 @@ def plot_category_detail(
     metric: str = "avg_minutes",
     top_n: int = 10,
 ) -> None:
-    """
-    Create and display a detailed chart for a specific category.
-
-    Args:
-        tag_stats_filtered: DataFrame with filtered tags
-        category: Category to display
-        metric: Metric to display
-        top_n: Number of tags to display
-    """
+    """Create and display a detailed chart for a specific category."""
     df_cat = tag_stats_filtered[tag_stats_filtered["category"] == category].copy()
-
-    # Sort by metric
-    if metric == "avg_minutes":
-        df_cat = df_cat.nsmallest(top_n, metric)
-    else:
-        df_cat = df_cat.nlargest(top_n, metric)
+    df_cat = (
+        df_cat.nsmallest(top_n, metric)
+        if metric == "avg_minutes"
+        else df_cat.nlargest(top_n, metric)
+    )
 
     metric_labels = {
         "avg_minutes": "Average time (min)",
@@ -600,8 +472,6 @@ def plot_category_detail(
     }
 
     fig, ax = plt.subplots(figsize=(10, max(6, top_n * 0.4)))
-
-    # Create horizontal bar chart
     colors = plt.cm.viridis(df_cat[metric].values / df_cat[metric].values.max())
     ax.barh(range(len(df_cat)), df_cat[metric].values, color=colors)
 
