@@ -1,10 +1,11 @@
 "Utils function and vaariable for the nutrition analyzer tab"
+
 import ast
 from typing import Dict
 
 import pandas as pd
-import streamlit as st # type: ignore
-import seaborn as sns # type: ignore
+import streamlit as st  # type: ignore
+import seaborn as sns  # type: ignore
 import matplotlib.pyplot as plt
 
 from webapp_mangetamain.load_config import cfg
@@ -20,13 +21,12 @@ NUTRISCORE = {
 
 nutrient_labels = cfg.nutrient_labels
 THRESHOLDS = cfg.THRESHOLDS.__dict__
-NUTRITION_LIMITS = {
-    k: v.__dict__ for k, v in cfg.NUTRITION_LIMITS.__dict__.items()
-}
+NUTRITION_LIMITS = {k: v.__dict__ for k, v in cfg.NUTRITION_LIMITS.__dict__.items()}
 
 # -------------------------
 # Functions
 # -------------------------
+
 
 def plot_nutriscore_comparison(subset_df: pd.DataFrame, recipe: pd.DataFrame) -> None:
     """
@@ -36,7 +36,10 @@ def plot_nutriscore_comparison(subset_df: pd.DataFrame, recipe: pd.DataFrame) ->
     subset_tags = recipe.loc[subset_df.index, "tags"]
 
     health_mask = subset_tags.apply(
-        lambda tags: any("health" in str(t).lower() for t in (tags if isinstance(tags, list) else [tags]))
+        lambda tags: any(
+            "health" in str(t).lower()
+            for t in (tags if isinstance(tags, list) else [tags])
+        )
     )
 
     health_subset = subset_df.loc[health_mask].copy()
@@ -64,7 +67,12 @@ def plot_nutriscore_comparison(subset_df: pd.DataFrame, recipe: pd.DataFrame) ->
     x = range(len(all_indexes))
 
     ax.bar([i - 0.2 for i in x], score_pct_all.values, width=0.4, label="All recipes")
-    ax.bar([i + 0.2 for i in x], score_pct_health.values, width=0.4, label="'Health' tagged")
+    ax.bar(
+        [i + 0.2 for i in x],
+        score_pct_health.values,
+        width=0.4,
+        label="'Health' tagged",
+    )
 
     ax.set_xticks(x)
     ax.set_xticklabels(all_indexes)
@@ -75,12 +83,14 @@ def plot_nutriscore_comparison(subset_df: pd.DataFrame, recipe: pd.DataFrame) ->
 
     st.pyplot(fig)
 
+
 def get_points(value: float, thresholds: list) -> int:
     """Assign points based on thresholds."""
     for i, t in enumerate(thresholds):
         if value <= t:
             return i
     return len(thresholds)
+
 
 def compute_nutriscore(nutrition: Dict[str, float]) -> str:
     """Compute the Nutri-Score from nutrition composition."""
@@ -98,11 +108,13 @@ def compute_nutriscore(nutrition: Dict[str, float]) -> str:
             return grade
     return "E"
 
+
 def parse_nutrition(recipe_df: pd.DataFrame) -> pd.DataFrame:
     """Expand recipe nutrition JSON column into numeric DataFrame."""
     nutrition = recipe_df["nutrition"].apply(ast.literal_eval)
     nutrition_df = pd.DataFrame(nutrition.tolist(), columns=nutrient_labels)
     return nutrition_df
+
 
 def filter_data_with_nutri(nutrition_df: pd.DataFrame) -> pd.DataFrame:
     """Filter out extreme values for clean analysis using config limits."""
@@ -110,9 +122,12 @@ def filter_data_with_nutri(nutrition_df: pd.DataFrame) -> pd.DataFrame:
 
     for nutrient, limits in NUTRITION_LIMITS.items():
         if nutrient in nutrition_df.columns:
-            mask &= nutrition_df[nutrient].between(limits["min"], limits["max"], inclusive="both")
+            mask &= nutrition_df[nutrient].between(
+                limits["min"], limits["max"], inclusive="both"
+            )
 
     return nutrition_df[mask].copy()
+
 
 def add_nutriscore_column(nutrition_df: pd.DataFrame) -> pd.DataFrame:
     """Compute and add Nutri-Score column to dataframe."""
@@ -120,27 +135,25 @@ def add_nutriscore_column(nutrition_df: pd.DataFrame) -> pd.DataFrame:
     df["nutri_score"] = df.apply(lambda row: compute_nutriscore(row.to_dict()), axis=1)
     return df
 
+
 def correlation_matrix(nutrition_df: pd.DataFrame):
     """Return a matplotlib figure for correlation matrix heatmap."""
     corr_matrix = nutrition_df.corr()
     fig, ax = plt.subplots(figsize=(5.5, 4.5))
     sns.heatmap(
-        corr_matrix,
-        annot=True,
-        fmt=".2f",
-        cmap="coolwarm",
-        vmin=-1,
-        vmax=1,
-        ax=ax
+        corr_matrix, annot=True, fmt=".2f", cmap="coolwarm", vmin=-1, vmax=1, ax=ax
     )
     ax.set_title("Correlation matrix", fontsize=14, pad=12)
     fig.tight_layout()
     return fig
 
-def analyze_low_scores_with_health_label(recipe_df: pd.DataFrame,
-                                         nutrition_df: pd.DataFrame,
-                                         health_keywords: list = None,
-                                         join_tags: bool = False) -> pd.DataFrame:
+
+def analyze_low_scores_with_health_label(
+    recipe_df: pd.DataFrame,
+    nutrition_df: pd.DataFrame,
+    health_keywords: list = None,
+    join_tags: bool = False,
+) -> pd.DataFrame:
     """
     Displays a table of Nutri-Score D/E recipes and keeps only the tags corresponding to health keywords (health, healthy, diet, fit, etc.) in the ‘tags’ column.
     - recipe_df must contain at least the ‘name’ and ‘tags’ columns.
@@ -159,7 +172,9 @@ def analyze_low_scores_with_health_label(recipe_df: pd.DataFrame,
         st.info("Aucune recette avec Nutri-Score D ou E.")
         return pd.DataFrame()
 
-    subset = recipe_df.loc[low_idx, recipe_df.columns.intersection(["name", "tags"])].copy()
+    subset = recipe_df.loc[
+        low_idx, recipe_df.columns.intersection(["name", "tags"])
+    ].copy()
 
     def parse_tags(raw):
         """Parse différents formats de tags en liste de chaînes propres."""

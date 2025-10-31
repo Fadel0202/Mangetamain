@@ -71,7 +71,9 @@ def sample_nutrition_with_tags():
 @pytest.fixture
 def sample_recipe_with_tags():
     """Recipe DataFrame with tags."""
-    return pd.DataFrame({"tags": [["healthy", "quick"], ["dessert", "easy"]]}, index=[0, 1])
+    return pd.DataFrame(
+        {"tags": [["healthy", "quick"], ["dessert", "easy"]]}, index=[0, 1]
+    )
 
 
 # ==================== TESTS ====================

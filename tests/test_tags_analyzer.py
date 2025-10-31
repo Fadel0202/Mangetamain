@@ -122,7 +122,9 @@ def test_find_best_tags(sample_tag_stats):
 
 def test_empty_dataframe():
     """Test with empty DataFrame."""
-    empty_df = pd.DataFrame(columns=["id", "tags", "minutes", "n_ingredients", "n_steps"])
+    empty_df = pd.DataFrame(
+        columns=["id", "tags", "minutes", "n_ingredients", "n_steps"]
+    )
     result = get_general_tags_statistics(empty_df)
     assert result["total_recipes"] == 0
 
@@ -130,7 +132,13 @@ def test_empty_dataframe():
 def test_single_recipe():
     """Test with single recipe."""
     df = pd.DataFrame(
-        {"id": [1], "tags": ["['italian']"], "minutes": [30], "n_ingredients": [5], "n_steps": [3]}
+        {
+            "id": [1],
+            "tags": ["['italian']"],
+            "minutes": [30],
+            "n_ingredients": [5],
+            "n_steps": [3],
+        }
     )
     stats = get_general_tags_statistics(df)
     assert stats["total_recipes"] == 1

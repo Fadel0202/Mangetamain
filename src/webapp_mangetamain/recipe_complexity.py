@@ -1,6 +1,7 @@
 import pandas as pd
-import seaborn as sns # tyoe: ignore
+import seaborn as sns  # tyoe: ignore
 import matplotlib.pyplot as plt
+
 
 def make_univariate_figs(df: pd.DataFrame, feature: str, hue: str | None = None):
     """
@@ -45,7 +46,10 @@ def make_pairplot_fig(df: pd.DataFrame, features: list[str], hue: str | None = N
     )
     return g.figure
 
-def make_corr_heatmap_fig(df: pd.DataFrame, features: list[str], title: str = "Correlation matrix"):
+
+def make_corr_heatmap_fig(
+    df: pd.DataFrame, features: list[str], title: str = "Correlation matrix"
+):
     """Retourne la figure de la heatmap de corrélation."""
     corr = df[features].corr()
     fig, ax = plt.subplots(figsize=(5.5, 4.5))

@@ -3,6 +3,7 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 
+
 def plot_ingredient_per_recette(ingredients_exploded: pd.DataFrame):
     counts_per_recipe = ingredients_exploded.groupby("id")["ingredients"].nunique()
     fig1, ax1 = plt.subplots(figsize=(7, 3))
@@ -17,7 +18,13 @@ def plot_ingredient_distribution(ingredient_counts: pd.DataFrame):
     Return matplotlib figure: log-scaled boxplot of ingredient frequencies.
     """
     fig, ax = plt.subplots(figsize=(7, 4))
-    sns.histplot(np.log1p(ingredient_counts["count"].values), bins=50, kde=True, color="salmon", ax=ax)
+    sns.histplot(
+        np.log1p(ingredient_counts["count"].values),
+        bins=50,
+        kde=True,
+        color="salmon",
+        ax=ax,
+    )
     ax.set_title("Log distribution of ingredient frequencies")
     ax.set_xlabel("log(1 + frequency)")
     return fig
@@ -34,7 +41,9 @@ def summarize_ingredient_stats(ingredient_counts: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(quantiles).T.round(2)
 
 
-def make_top_ingredients_bar_fig(ingredient_counts: pd.DataFrame, top_n: int = 30) -> plt.Figure:
+def make_top_ingredients_bar_fig(
+    ingredient_counts: pd.DataFrame, top_n: int = 30
+) -> plt.Figure:
     """
     Affiche un barplot des ingrédients les plus fréquents.
 
@@ -45,13 +54,7 @@ def make_top_ingredients_bar_fig(ingredient_counts: pd.DataFrame, top_n: int = 3
     top_df = ingredient_counts.nlargest(top_n, "count")
 
     fig, ax = plt.subplots(figsize=(8, max(4, top_n * 0.25)))
-    sns.barplot(
-        data=top_df,
-        y="ingredients",
-        x="count",
-        ax=ax,
-        palette="viridis"
-    )
+    sns.barplot(data=top_df, y="ingredients", x="count", ax=ax, palette="viridis")
     ax.set_title(f"Top {top_n} most frequent ingredients", fontsize=13, pad=10)
     ax.set_xlabel("Number of occurrences")
     ax.set_ylabel("")
@@ -88,13 +91,18 @@ def top_cooccurrences_for(ingredient, jaccard, co_occurrence, k=15, min_co=20):
 
     # top k
     out = (
-        pd.DataFrame({"other": s.index, "score": s.values, "co": co.loc[s.index].values})
+        pd.DataFrame(
+            {"other": s.index, "score": s.values, "co": co.loc[s.index].values}
+        )
         .sort_values("score", ascending=False)
         .head(k)
     )
     return out
 
-def make_association_bar_fig(df_pairs: pd.DataFrame, title: str, x: str = "lift") -> plt.Figure:
+
+def make_association_bar_fig(
+    df_pairs: pd.DataFrame, title: str, x: str = "lift"
+) -> plt.Figure:
     """
     Barplot horizontal des associations (x = 'lift' ou 'P(B|A)').
     """
@@ -112,5 +120,3 @@ def make_association_bar_fig(df_pairs: pd.DataFrame, title: str, x: str = "lift"
     ax.set_title(title)
     fig.tight_layout()
     return fig
-
-

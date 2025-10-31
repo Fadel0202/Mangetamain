@@ -1,9 +1,10 @@
-import utils.filter_data as filter_data
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import pandas as pd
 import math
+
+
 def plot_cuisine_distributions(recipes_with_continent: pd.DataFrame):
     """
     Displays three boxplots comparing recipe characteristics across continents:
@@ -22,15 +23,18 @@ def plot_cuisine_distributions(recipes_with_continent: pd.DataFrame):
     titles = {
         "log_minutes": "Preparation time (log scale)",
         "n_steps": "Number of steps",
-        "n_ingredients": "Number of ingredients"
+        "n_ingredients": "Number of ingredients",
     }
 
     fig, axes = plt.subplots(1, 3, figsize=(15, 10))
 
     for i, col in enumerate(cols):
         sns.boxplot(
-            x="continent", y=col, data=recipes_with_continent,
-            ax=axes[i], palette="viridis"
+            x="continent",
+            y=col,
+            data=recipes_with_continent,
+            ax=axes[i],
+            palette="viridis",
         )
         axes[i].set_title(f"Distribution of {titles[col]} by continent")
         axes[i].tick_params(axis="x", rotation=45)
@@ -41,7 +45,11 @@ def plot_cuisine_distributions(recipes_with_continent: pd.DataFrame):
     return fig
 
 
-def plot_top_ingredients_by_continent(recipes_with_continent: pd.DataFrame, top_n: int = 10, global_threshold: float = 0.30):
+def plot_top_ingredients_by_continent(
+    recipes_with_continent: pd.DataFrame,
+    top_n: int = 10,
+    global_threshold: float = 0.30,
+):
     """
     Displays the most commonly used ingredients for each continent,
     while excluding globally ubiquitous ingredients.
@@ -64,15 +72,13 @@ def plot_top_ingredients_by_continent(recipes_with_continent: pd.DataFrame, top_
     )
 
     # --- 2. Remove globally common ingredients
-    common_ingredients = global_freq.query("global_freq > @global_threshold")["ingredients"]
+    common_ingredients = global_freq.query("global_freq > @global_threshold")[
+        "ingredients"
+    ]
     df = df[~df["ingredients"].isin(common_ingredients)]
 
     # --- 3. Count remaining ingredient occurrences by continent
-    counts = (
-        df.groupby(["continent", "ingredients"])
-        .size()
-        .reset_index(name="count")
-    )
+    counts = df.groupby(["continent", "ingredients"]).size().reset_index(name="count")
 
     # --- 4. Select top N per continent
     top_by_continent = (
@@ -83,11 +89,7 @@ def plot_top_ingredients_by_continent(recipes_with_continent: pd.DataFrame, top_
     )
 
     # --- 5. Ensure continents appear consistently in sorted order
-    continent_order = (
-        df["continent"]
-        .value_counts()
-        .index.tolist()
-    )
+    continent_order = df["continent"].value_counts().index.tolist()
     top_by_continent["continent"] = pd.Categorical(
         top_by_continent["continent"], categories=continent_order, ordered=True
     )
@@ -99,24 +101,17 @@ def plot_top_ingredients_by_continent(recipes_with_continent: pd.DataFrame, top_
     ncols = 2
     nrows = math.ceil(n / ncols)
     fig, axes = plt.subplots(
-        nrows=nrows, ncols=ncols,
-        figsize=(13, 4 * nrows),
-        sharey=False
+        nrows=nrows, ncols=ncols, figsize=(13, 4 * nrows), sharey=False
     )
 
     axes = np.array(axes).reshape(-1)
 
     for ax, continent in zip(axes, continents):
-        subset = (
-            top_by_continent[top_by_continent["continent"] == continent]
-            .sort_values("count", ascending=True)
-        )
+        subset = top_by_continent[
+            top_by_continent["continent"] == continent
+        ].sort_values("count", ascending=True)
 
-        sns.barplot(
-            data=subset,
-            x="count", y="ingredients",
-            ax=ax, palette="viridis"
-        )
+        sns.barplot(data=subset, x="count", y="ingredients", ax=ax, palette="viridis")
         ax.set_title(continent, fontsize=12, fontweight="bold")
         ax.set_xlabel("Occurrences")
         ax.set_ylabel("")
@@ -128,10 +123,11 @@ def plot_top_ingredients_by_continent(recipes_with_continent: pd.DataFrame, top_
         axes[j].set_visible(False)
 
     fig.suptitle(
-        f"Top {top_n} characteristic ingredients by continent (excluding ingredients used in > {int(global_threshold*100)}% of recipes)",
-        fontsize=14, fontweight="bold", y=1.02
+        f"Top {top_n} characteristic ingredients by continent (excluding ingredients used in > {int(global_threshold * 100)}% of recipes)",
+        fontsize=14,
+        fontweight="bold",
+        y=1.02,
     )
     plt.tight_layout()
     plt.show()
     return fig
-

@@ -1,4 +1,5 @@
 "main function of the stremlit app"
+
 import logging
 
 import ingredients_analyzer
@@ -120,7 +121,10 @@ def render_nutriscore_tab():
         - Incorrectly entered values,
         - Whether the data is standardized (e.g., per 100g).
         """)
-    analyze_low_scores_with_health_label(recipe_df=food_recipes, nutrition_df=scored_df_food)
+    analyze_low_scores_with_health_label(
+        recipe_df=food_recipes, nutrition_df=scored_df_food
+    )
+
 
 def render_tags_tab():
     """Render the Tags tab content."""
@@ -135,7 +139,7 @@ def render_tags_tab():
     # Key metrics
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Total Recipes", f"{stats['total_recipes']:,}")
-    col2.metric("Unique Tags", stats['total_unique_tags'])
+    col2.metric("Unique Tags", stats["total_unique_tags"])
     col3.metric("Total Tags", f"{stats['total_tags']:,}")
     col4.metric("Avg Tags/Recipe", f"{stats['tags_per_recipe_mean']:.2f}")
     # All statistics in order
@@ -152,11 +156,11 @@ def render_tags_tab():
         st.write(f"- **Average occurrences per tag:** {stats['avg_tags_general']:.2f}")
         st.write("#### Distribution Details")
         st.write("**Tags per recipe (detailed):**")
-        st.write(stats['tags_per_recipe_stats'])
+        st.write(stats["tags_per_recipe_stats"])
         st.write("**Tag frequency (detailed):**")
-        st.write(stats['tag_counts_stats'])
+        st.write(stats["tag_counts_stats"])
         st.write("#### Top 20 Most Frequent Tags")
-        st.write(stats['top_20_tags'])
+        st.write(stats["top_20_tags"])
 
     # ========================
     # Visualizations
@@ -166,9 +170,11 @@ def render_tags_tab():
 
     # Graph 1: Tag frequency first
     st.write("#### Tag Frequency Distribution")
-    tag_counts = recipe_rating['tags_parsed'].explode().value_counts()
+    tag_counts = recipe_rating["tags_parsed"].explode().value_counts()
     plot_tag_frequency_distribution(tag_counts)
-    st.info("Power law distribution: few tags used very frequently, many tags used rarely")
+    st.info(
+        "Power law distribution: few tags used very frequently, many tags used rarely"
+    )
 
     # Graph 2: Top 20
     st.write("#### Top 20 Most Frequent Tags")
@@ -188,14 +194,18 @@ def render_tags_tab():
     tag_stats, _ = create_tag_recipes_dataset(recipe_rating, min_recipes_per_tag=50)
     st.info(f"Analyzing **{len(tag_stats)}** tags with at least 50 recipes")
     tags_of_interest = filter_tags_of_interest(tag_stats)
-    st.success(f"Found **{len(tags_of_interest)}** tags of interest across **{tags_of_interest['category'].nunique()}** categories")
+    st.success(
+        f"Found **{len(tags_of_interest)}** tags of interest across **{tags_of_interest['category'].nunique()}** categories"
+    )
     # Show the 37 tags of interest
     with st.expander("View the tags of interest"):
-        for category in sorted(tags_of_interest['category'].unique()):
-            cat_tags = tags_of_interest[tags_of_interest['category'] == category]['tag'].tolist()
+        for category in sorted(tags_of_interest["category"].unique()):
+            cat_tags = tags_of_interest[tags_of_interest["category"] == category][
+                "tag"
+            ].tolist()
             st.write(f"**{category}** ({len(cat_tags)} tags): {', '.join(cat_tags)}")
     st.write("#### Top Tags by Number of Recipes")
-    plot_top_tags_by_metric(tag_stats, metric='n_recipes', top_n=20)
+    plot_top_tags_by_metric(tag_stats, metric="n_recipes", top_n=20)
 
     # ========================
     # Best Tags
@@ -207,19 +217,27 @@ def render_tags_tab():
 
     with col1:
         st.write("**Fastest (by avg time):**")
-        fastest = tags_of_interest.nsmallest(5, 'avg_minutes')[['tag', 'category', 'avg_minutes', 'n_recipes']]
+        fastest = tags_of_interest.nsmallest(5, "avg_minutes")[
+            ["tag", "category", "avg_minutes", "n_recipes"]
+        ]
         st.dataframe(fastest, hide_index=True)
 
         st.write("**Simplest (fewest ingredients):**")
-        simplest = tags_of_interest.nsmallest(5, 'avg_ingredients')[['tag', 'category', 'avg_ingredients', 'n_recipes']]
+        simplest = tags_of_interest.nsmallest(5, "avg_ingredients")[
+            ["tag", "category", "avg_ingredients", "n_recipes"]
+        ]
         st.dataframe(simplest, hide_index=True)
 
     with col2:
         st.write("**Most Popular:**")
-        popular = tags_of_interest.nlargest(5, 'n_recipes')[['tag', 'category', 'n_recipes', 'avg_minutes']]
+        popular = tags_of_interest.nlargest(5, "n_recipes")[
+            ["tag", "category", "n_recipes", "avg_minutes"]
+        ]
         st.dataframe(popular, hide_index=True)
         st.write("**Fewest Steps:**")
-        easy = tags_of_interest.nsmallest(5, 'avg_steps')[['tag', 'category', 'avg_steps', 'n_recipes']]
+        easy = tags_of_interest.nsmallest(5, "avg_steps")[
+            ["tag", "category", "avg_steps", "n_recipes"]
+        ]
         st.dataframe(easy, hide_index=True)
 
 
@@ -244,7 +262,11 @@ def render_ingredient_tab():
     st.divider()
     # ===== 2) Distribution & résumé =====
     st.subheader("Distribution of the number of ingredients per recipe")
-    st.pyplot(ingredients_analyzer.plot_ingredient_per_recette(filter_data.ingredients_exploded))
+    st.pyplot(
+        ingredients_analyzer.plot_ingredient_per_recette(
+            filter_data.ingredients_exploded
+        )
+    )
     st.markdown("""
     The number of ingredients per recipe generally ranges between **5 and 12**, with a peak around **8 ingredients**.
     This indicates that most recipes are **moderately complex**: not extremely simple, but not overly elaborate either.
@@ -275,7 +297,9 @@ def render_ingredient_tab():
 
     st.subheader("Most Frequent Ingredients")
     top_n = st.slider("Display the top N most frequent ingredients", 10, 100, 30, 5)
-    st.pyplot(ingredients_analyzer.make_top_ingredients_bar_fig(ingredient_counts, top_n))
+    st.pyplot(
+        ingredients_analyzer.make_top_ingredients_bar_fig(ingredient_counts, top_n)
+    )
     st.markdown("""
     The top ingredients include:
     **salt, butter, sugar, onion, eggs, olive oil, flour, garlic, milk, pepper**.
@@ -311,17 +335,25 @@ def render_ingredient_tab():
     regional flavors, cuisine families, or dietary patterns.
     """)
 
-
     min_count = st.number_input(
         "min_count (exclude very rare ingredients)",
-        1, int(ingredient_counts["count"].max()), 200
+        1,
+        int(ingredient_counts["count"].max()),
+        200,
     )
     use_max = st.checkbox("Limit very common ingredients (max_count)", value=True)
     default_max = 5000
-    max_count = st.number_input(
-        "max_count", min_count, int(ingredient_counts["count"].max()),
-        default_max, step=50
-    ) if use_max else None
+    max_count = (
+        st.number_input(
+            "max_count",
+            min_count,
+            int(ingredient_counts["count"].max()),
+            default_max,
+            step=50,
+        )
+        if use_max
+        else None
+    )
 
     kept_counts = filter_data.filter_counts_window(
         ingredient_counts, min_count=min_count, max_count=max_count
@@ -357,7 +389,9 @@ def render_ingredient_tab():
     """)
     c1, c2 = st.columns([2, 1])
     with c1:
-        focus = st.selectbox("Select an ingredient", sorted(filter_data.co_occurrence.columns.to_list()))
+        focus = st.selectbox(
+            "Select an ingredient", sorted(filter_data.co_occurrence.columns.to_list())
+        )
     with c2:
         k = st.slider("Top K", 5, 40, 15)
 
@@ -365,12 +399,18 @@ def render_ingredient_tab():
     metric = st.radio("Mesure", ["Jaccard"], horizontal=True)
 
     if metric == "Jaccard":
-        assoc = ingredients_analyzer.top_cooccurrences_for(focus, filter_data.jaccard, filter_data.co_occurrence, k=k, min_co=min_co_focus)
+        assoc = ingredients_analyzer.top_cooccurrences_for(
+            focus,
+            filter_data.jaccard,
+            filter_data.co_occurrence,
+            k=k,
+            min_co=min_co_focus,
+        )
         x_field, title = "score", f"Top neighbors Jaccard avec '{focus}'"
-
 
     st.pyplot(ingredients_analyzer.make_association_bar_fig(assoc, title, x=x_field))
     st.dataframe(assoc)
+
 
 def render_complexity_tab():
     df = recipes_clean
@@ -391,7 +431,9 @@ def render_complexity_tab():
     )
 
     col1, col2 = st.columns(2)
-    hist_fig, box_fig = make_univariate_figs(df, feature, hue=("kind" if "kind" in df.columns else None))
+    hist_fig, box_fig = make_univariate_figs(
+        df, feature, hue=("kind" if "kind" in df.columns else None)
+    )
     with col1:
         st.pyplot(hist_fig)
     with col2:
@@ -436,7 +478,9 @@ def render_complexity_tab():
 
     st.subheader("Relationships between features")
     features_rel = ["log_minutes", "n_steps", "n_ingredients"]
-    pair_fig = make_pairplot_fig(df, features_rel, hue=("kind" if "kind" in df.columns else None))
+    pair_fig = make_pairplot_fig(
+        df, features_rel, hue=("kind" if "kind" in df.columns else None)
+    )
     st.pyplot(pair_fig)
     st.markdown("""
     ### Relationships Between Complexity Features
@@ -458,7 +502,9 @@ def render_complexity_tab():
     """)
 
     st.subheader("Correlation matrix")
-    corr_fig = make_corr_heatmap_fig(df, features_rel, "Correlation (log_minutes, n_steps, n_ingredients)")
+    corr_fig = make_corr_heatmap_fig(
+        df, features_rel, "Correlation (log_minutes, n_steps, n_ingredients)"
+    )
     st.pyplot(corr_fig)
     st.markdown("""
     ### Correlation Matrix — Summary
@@ -507,7 +553,7 @@ def render_local_food_tab():
     The boxplots show clear regional differences in recipe complexity:
     - **North American** and **Oceania** cuisines tend to have shorter preparation times and fewer steps.
     - **Asian** and **European** cuisines show a wider spread, indicating more diversity in cooking times and methods.
-    - **Africa & Middle East** and **Central & South America** often use more ingredients per recipe, suggesting richer flavor profiles.  
+    - **Africa & Middle East** and **Central & South America** often use more ingredients per recipe, suggesting richer flavor profiles.
     Overall, Asian and European cuisines appear the most complex, while Oceania recipes are the simplest.
     """)
 
@@ -516,12 +562,18 @@ def render_local_food_tab():
 
     top_n = st.slider(
         "Number of ingredients to display per continent",
-        min_value=5, max_value=30, value=10, step=1
+        min_value=5,
+        max_value=30,
+        value=10,
+        step=1,
     )
 
     threshold = st.slider(
         "Omnipresence threshold (exclude ingredients appearing in more than X% of recipes)",
-        min_value=0.05, max_value=1.0, value=0.30, step=0.05
+        min_value=0.05,
+        max_value=1.0,
+        value=0.30,
+        step=0.05,
     )
 
     st.caption(
@@ -531,9 +583,7 @@ def render_local_food_tab():
 
     st.pyplot(
         plot_top_ingredients_by_continent(
-            ingredient_and_continent,
-            top_n=top_n,
-            global_threshold=threshold
+            ingredient_and_continent, top_n=top_n, global_threshold=threshold
         )
     )
 
@@ -562,7 +612,9 @@ def main():
     st.title("MangeTaMain Dashboard")
 
     # Create tabs
-    tab1, tab2, tab3, tab4 , tab5 = st.tabs(["Nutriscore", "Tags", "Ingredient", "Complexity", "Local Food"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(
+        ["Nutriscore", "Tags", "Ingredient", "Complexity", "Local Food"]
+    )
 
     with tab1:
         render_nutriscore_tab()
