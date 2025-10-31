@@ -29,11 +29,5 @@ jobs:
       - name: Run Ruff (PEP8 lint)
         run: hatch run lint
 
-      - name: Run Unit Tests
-        run: hatch run test
-
-      - name: Upload Coverage Report
-        run: |
-          pip install coverage
-          coverage run -m pytest
-          coverage report -m
+      - name: Run Unit Tests with Coverage
+        run: hatch run test-cov
