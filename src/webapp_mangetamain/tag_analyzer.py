@@ -4,7 +4,7 @@ Analysis of tags and their relationships with recipe metrics
 """
 
 import ast
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Any
 import streamlit as st
 
 import pandas as pd
@@ -107,28 +107,35 @@ def create_tag_category_mapping() -> Dict[str, str]:
     return category_map
 
 
-def get_general_tags_statistics(recipes_df: pd.DataFrame) -> Dict[str, any]:
+def get_general_tags_statistics(recipes_df: pd.DataFrame) -> Dict[str, Any]:
     """
     Calculate general statistics on tags.
 
     Args:
-        recipes_df: DataFrame containing a 'tags' column
+        recipes_df: DataFrame (ou proxy) contenant une colonne 'tags'
 
     Returns:
-        Dictionary containing general statistics
+        Dictionnaire des statistiques générales
     """
-    # Parse tags
-    recipes_df["tags_parsed"] = parse_tags(recipes_df["tags"])
 
-    # Statistics on number of tags per recipe
-    tags_per_recipe = recipes_df["tags_parsed"].apply(len)
+    # Extraire la colonne 'tags' sans modifier le DataFrame d'origine
+    if "tags" not in recipes_df.columns:
+        raise KeyError("La colonne 'tags' est absente du DataFrame fourni.")
 
-    # Create a list of all tags
-    all_tags = []
-    for tags_list in recipes_df["tags_parsed"]:
+    tags_series = recipes_df["tags"]
+
+    # Parser les tags (en gardant une nouvelle série)
+    tags_parsed = parse_tags(tags_series)
+
+    # Nombre de tags par recette
+    tags_per_recipe = tags_parsed.apply(len)
+
+    # Concaténer tous les tags dans une liste
+    all_tags: Iterable[str] = []
+    for tags_list in tags_parsed:
         all_tags.extend(tags_list)
 
-    # Count occurrences
+    # Comptage des occurrences
     tag_counts = pd.Series(all_tags).value_counts()
     avg_tags_general = len(all_tags) / len(tag_counts) if len(tag_counts) > 0 else 0
 
@@ -147,7 +154,6 @@ def get_general_tags_statistics(recipes_df: pd.DataFrame) -> Dict[str, any]:
     }
 
     return stats
-
 
 def analyze_tags_distribution(recipes_df: pd.DataFrame) -> pd.DataFrame:
     """
