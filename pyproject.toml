@@ -7,7 +7,7 @@ name = "webapp-mangetamain"
 # dynamic = ["version"]
 version = "1.0.0"
 description = ""
-requires-python = ">=3.8"
+requires-python = ">=3.9,!=3.9.7"
 license = { text = "MIT" }
 keywords = []
 authors = [
