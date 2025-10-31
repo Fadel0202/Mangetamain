@@ -63,19 +63,24 @@ TAGS_OF_INTEREST = {
 
 def parse_tags(tags_series: pd.Series) -> pd.Series:
     """
-    Parse tags stored as strings into lists.
+    Parse tags stored as strings into lists of lowercase strings.
 
     Args:
         tags_series: Series containing tags as string format
 
     Returns:
-        Series with tags parsed as lists
+        Series with tags parsed as lists of lowercase strings
     """
     def safe_parse(x):
         try:
             if pd.isna(x):
                 return []
-            return ast.literal_eval(x) if isinstance(x, str) else x
+            # Parse string representation of list; ensure result is a list
+            value = ast.literal_eval(x) if isinstance(x, str) else x
+            if not isinstance(value, list):
+                value = [value]
+            # Normalize each tag: string, lowercase, stripped
+            return [str(tag).lower().strip() for tag in value]
         except Exception:
             return []
 
@@ -83,7 +88,7 @@ def parse_tags(tags_series: pd.Series) -> pd.Series:
 
 
 def get_all_tags_of_interest() -> List[str]:
-    """Return the list of all tags of interest."""
+    """Return the list of all tags of interest (already in lowercase)."""
     return [tag for category in TAGS_OF_INTEREST.values() for tag in category]
 
 
@@ -109,20 +114,15 @@ def get_general_tags_statistics(recipes_df: pd.DataFrame) -> Dict[str, Any]:
     if "tags" not in recipes_df.columns:
         raise KeyError("La colonne 'tags' est absente du DataFrame fourni.")
 
-    # Parse tags into lists
     tags_parsed = parse_tags(recipes_df["tags"])
-
-    # Number of tags per recipe (vectorized)
     tags_per_recipe = tags_parsed.str.len()
-
-    # Flatten all tags into a single series using explode
     tags_exploded = tags_parsed.explode()
-
-    # Count occurrences
     tag_counts = tags_exploded.value_counts()
-    avg_tags_general = tags_per_recipe.sum() / len(tag_counts) if len(tag_counts) > 0 else 0
+    avg_tags_general = (
+        tags_per_recipe.sum() / len(tag_counts) if len(tag_counts) > 0 else 0
+    )
 
-    stats = {
+    return {
         "total_recipes": len(recipes_df),
         "tags_per_recipe_stats": tags_per_recipe.describe(),
         "tags_per_recipe_mean": tags_per_recipe.mean(),
@@ -135,7 +135,6 @@ def get_general_tags_statistics(recipes_df: pd.DataFrame) -> Dict[str, Any]:
         "tag_counts_stats": tag_counts.describe(),
         "top_20_tags": tag_counts.head(20),
     }
-    return stats
 
 
 def analyze_tags_distribution(recipes_df: pd.DataFrame) -> pd.DataFrame:
@@ -162,7 +161,7 @@ def analyze_tags_distribution(recipes_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def create_tag_recipes_dataset(
-    recipes_df: pd.DataFrame, min_recipes_per_tag: int = 50
+    recipes_df: pd.DataFrame, min_recipes_per_tag: int = 20
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
     Create a dataset for tag analysis with aggregated metrics.
@@ -174,11 +173,11 @@ def create_tag_recipes_dataset(
     Returns:
         Tuple (tag_stats, tag_recipes_df)
     """
-    # Ensure tags_parsed column exists
+    # Ensure tags_parsed column exists (lowercase tags)
     if "tags_parsed" not in recipes_df.columns:
         recipes_df["tags_parsed"] = parse_tags(recipes_df["tags"])
 
-    # Select needed columns and explode tags
+    # Explode tags and select useful columns
     cols = ["id", "tags_parsed", "minutes", "n_ingredients", "n_steps"]
     df_exp = (
         recipes_df[cols]
@@ -186,8 +185,9 @@ def create_tag_recipes_dataset(
         .dropna(subset=["tags_parsed"])
         .rename(columns={"tags_parsed": "tag", "id": "recipe_id"})
     )
+    # Normaliser le tag (double sécurité)
+    df_exp["tag"] = df_exp["tag"].astype(str).str.lower().str.strip()
 
-    # Aggregate statistics per tag
     tag_stats = (
         df_exp.groupby("tag")
         .agg(
@@ -359,8 +359,16 @@ def plot_tags_per_recipe_distribution(recipes_df: pd.DataFrame) -> None:
 
     mean_val = tags_per_recipe.mean()
     median_val = tags_per_recipe.median()
-    ax.axvline(mean_val, color="red", linestyle="--", linewidth=2, label=f"Mean: {mean_val:.1f}")
-    ax.axvline(median_val, color="green", linestyle="--", linewidth=2, label=f"Median: {median_val:.1f}")
+    ax.axvline(
+        mean_val, color="red", linestyle="--", linewidth=2, label=f"Mean: {mean_val:.1f}"
+    )
+    ax.axvline(
+        median_val,
+        color="green",
+        linestyle="--",
+        linewidth=2,
+        label=f"Median: {median_val:.1f}",
+    )
 
     ax.set_xlabel("Number of tags per recipe", fontsize=12)
     ax.set_ylabel("Number of recipes", fontsize=12)
