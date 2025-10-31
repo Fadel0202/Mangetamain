@@ -31,34 +31,31 @@ CONFIG_PATH = os.path.abspath(CONFIG_PATH)
 
 cfg = Config.from_json(CONFIG_PATH)
 
-# URL de la GitHub Release
-GITHUB_RELEASE_URL = "https://github.com/Fadel0202/Mangetamain/releases/download/v1.0.0/data_with_artifacts.zip"
+# URL de la GitHub Release (juste data/, les artifacts sont dans Git)
+GITHUB_RELEASE_URL = "https://github.com/Fadel0202/Mangetamain/releases/download/v1.0.0/data.zip"
 
 
 def download_data_if_needed():
     """Télécharge les données depuis GitHub Release si elles n'existent pas."""
     data_dir = Path("data")
-    artifacts_dir = Path("artifacts")
     recipe_file = data_dir / "RAW_recipes.csv"
-    co_occurrence_file = artifacts_dir / "co_occurrence.csv"
 
-    # Si les données ET artifacts existent déjà, ne rien faire
-    if recipe_file.exists() and co_occurrence_file.exists():
-        print("Données et artifacts déjà présents")
+    # Si les données existent déjà, ne rien faire
+    if recipe_file.exists():
+        print("Données déjà présentes")
         return
 
-    print("Téléchargement des données depuis GitHub Release (176 Mo, ~30-40 secondes)...")
+    print("Téléchargement des données depuis GitHub Release (168 Mo, ~30-40 secondes)...")
 
     try:
-        # Créer les dossiers
+        # Créer le dossier data
         data_dir.mkdir(exist_ok=True)
-        artifacts_dir.mkdir(exist_ok=True)
 
         # Télécharger le zip
         response = requests.get(GITHUB_RELEASE_URL, timeout=300, stream=True)
         response.raise_for_status()
 
-        zip_path = "data_with_artifacts.zip"
+        zip_path = "data.zip"
         total_size = int(response.headers.get('content-length', 0))
         downloaded = 0
 
