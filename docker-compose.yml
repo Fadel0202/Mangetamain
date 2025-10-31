@@ -1,0 +1,17 @@
+services:
+  webapp:
+    build: .
+    container_name: webapp-mangetamain
+    ports:
+      - "8501:8501"
+    environment:
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+    volumes:
+      # - ./artifacts:/app/artifacts
+      # - ./data:/app/data
+      # - ./src:/app/src
+      - ./pyproject.toml:/app/pyproject.toml
+    command: hatch run webapp
+    restart: unless-stopped

@@ -1,0 +1,89 @@
+{
+    "data_path": "data/recipes_with_ratings.csv",
+    "data_rating_path": "data/recipes_with_ratings.csv",
+    "health_keywords": ["health", "healthy", "fit", "diet", "balance", "wellness"],
+    "DRINK_KEYWORDS": [
+      "\\bbeverage(s)?\\b",
+      "\\bdrink(s)?\\b",
+      "\\bcocktail(s)?\\b",
+      "\\bsmoothie(s)?\\b",
+      "\\bshake(s)?\\b",
+      "\\bjuice(s)?\\b",
+      "\\b(non-)?alcoholic\\b",
+      "\\bwine(s)?\\b",
+      "\\bbeer(s)?\\b",
+      "\\bcider(s)?\\b",
+      "\\bliqueur(s)?\\b",
+      "\\bcordial(s)?\\b",
+      "\\bpunch\\b",
+      "\\bcoffee\\b",
+      "\\btea\\b",
+      "\\blatte\\b",
+      "\\bmocha\\b",
+      "\\bmatcha\\b",
+      "\\blespress(o)?\\b",
+      "\\bsoda\\b",
+      "\\blemona?de\\b",
+      "\\bmargarita(s)?\\b",
+      "\\bmartini(s)?\\b",
+      "\\bmojito(s)?\\b",
+      "\\b(eggnog|toddy)\\b",
+      "\\bbrewing\\b",
+      "\\bhalloween-cocktails\\b",
+      "\\bpunch beverage\\b"
+    ],
+    "DRINK_FALSE_POSITIVES": [
+      "coffee-cakes?",
+      "coffee-cakes"
+    ],
+    "FOOD_KEYWORDS": [
+      "\\b(main-dish|main-dish-.+)\\b",
+      "\\b(appetizers?|snacks?)\\b",
+      "\\b(desserts?)\\b",
+      "\\b(soups?-stews?|stews?|chowders?|bisques-cream-soups)\\b",
+      "\\b(salads?)\\b",
+      "\\b(breads?|rolls-biscuits|quick-breads)\\b",
+      "\\b(casseroles?)\\b",
+      "\\b(sauces?|marinades?-and-rubs|salad-dressings|sweet-sauces|spaghetti-sauce|marinara-sauce)\\b",
+      "\\b(pasta|pasta-.+|pasta-rice-and-grains)\\b",
+      "\\b(sandwiches?)\\b",
+      "\\b(burgers?)\\b",
+      "\\b(pizza)\\b",
+      "\\b(cakes?|cookies?-and-brownies|brownies|bar-cookies|rolled-cookies|drop-cookies|sugar-cookies|cupcakes|cheesecake)\\b",
+      "\\b(pies(-and-tarts)?|savory-pies|tarts)\\b",
+      "\\b(puddings?-and-mousses|ice-cream|frozen-desserts|gelatin|granola-and-porridge|bread-pudding)\\b",
+      "\\b(omelets?-and-frittatas|breakfast(-eggs)?|eggs-breakfast|breakfast-casseroles|breakfast-potatoes|pancakes-and-waffles)\\b",
+      "\\b(roast|roast-beef|roast-beef-main-dish|pot-roast)\\b",
+      "\\b(stir-fry|deep-fry|grilling|broil|steam|pressure-cooker|crock-pot(-slow-cooker)?|pressure-canning|water-bath)\\b"
+    ],
+    "nutrient_labels": [
+    "calories",
+    "fat",
+    "sugar",
+    "sodium",
+    "protein",
+    "saturated_fat",
+    "carbohydrates"
+    ],
+    "THRESHOLDS": {
+        "calories": [335, 670, 1005, 1340, 1675, 2010, 2345, 2680, 3015, 33500],
+        "sugar": [3.4, 6.8, 10, 14, 17, 20, 24, 27, 31, 34, 37, 41, 44, 48, 51],
+        "sodium": [2, 8, 13, 16, 20, 50, 80, 150, 300, 800],
+        "protein": [4, 8, 10, 14, 17, 20, 28],
+        "saturated_fat": [10, 16, 22, 28, 34, 40, 46, 52, 58, 64]
+    },
+    "NUTRISCORE": {
+        "(0, 2)": "A",
+        "(3, 10)": "B",
+        "(11, 18)": "C",
+        "(19, 40)": "D",
+        "(41, 100)": "E"
+    },
+    "NUTRITION_LIMITS": {
+        "calories": {"min": 0, "max": 50000},
+        "sugar": {"min": 0, "max": 200},
+        "sodium": {"min": 0, "max": 2000},
+        "protein": {"min": 0, "max": 2000},
+        "saturated_fat": {"min": 0, "max": 2000}
+  }
+}

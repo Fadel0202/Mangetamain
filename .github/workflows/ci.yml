@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-test:
+    name: Lint and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Hatch
+        run: pip install hatch
+
+      - name: Create Hatch environment
+        run: hatch env create
+
+      - name: Run Ruff (PEP8 lint)
+        run: hatch run lint
+
+      - name: Run Unit Tests
+        run: hatch run test
+
+      - name: Upload Coverage Report
+        run: |
+          pip install coverage
+          coverage run -m pytest
+          coverage report -m
