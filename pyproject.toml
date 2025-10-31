@@ -4,10 +4,9 @@ build-backend = "hatchling.build"
 
 [project]
 name = "webapp-mangetamain"
-# dynamic = ["version"]
 version = "1.0.0"
-description = ""
-requires-python = ">=3.9,!=3.9.7"
+description = "Application Streamlit pour l'analyse de recettes"
+requires-python = ">=3.10"
 license = { text = "MIT" }
 keywords = []
 authors = [
@@ -16,8 +15,6 @@ authors = [
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -26,15 +23,13 @@ classifiers = [
 ]
 
 dependencies = [
-  "requests==2.32.5",
-  "flask==3.1.2",
-  "pytest==8.4.2",
   "streamlit==1.50.0",
-  "matplotlib==3.10.6",
-  "seaborn==0.13.2",
   "pandas==2.3.3",
   "numpy==2.2.6",
-  "pytest",
+  "matplotlib==3.10.6",
+  "seaborn==0.13.2",
+  "requests==2.32.5",
+  "pytest==8.4.2",
   "pytest-cov",
   "ruff",
   "coverage",
@@ -44,14 +39,13 @@ dependencies = [
 webapp = "webapp_mangetamain.interface:main"
 
 [project.urls]
-Documentation = "https://github.com/Ambroise012/webapp-mangetamain#readme"
-Issues = "https://github.com/Ambroise012/webapp-mangetamain/issues"
-Source = "https://github.com/Ambroise012/webapp-mangetamain"
+Documentation = "https://github.com/Fadel0202/Mangetamain#readme"
+Issues = "https://github.com/Fadel0202/Mangetamain/issues"
+Source = "https://github.com/Fadel0202/Mangetamain"
 
 [tool.hatch.version]
 path = "src/webapp_mangetamain/__about__.py"
 
-# Default environment: includes testing + linting
 [tool.hatch.envs.default]
 dependencies = [
   "pytest",
@@ -67,7 +61,6 @@ test = "pytest --maxfail=1 --disable-warnings -q"
 test-cov = "pytest --cov=src --cov-report=term-missing --cov-report=html"
 webapp = "streamlit run src/webapp_mangetamain/interface.py"
 
-# Optional typing environment
 [tool.hatch.envs.types]
 extra-dependencies = [
   "mypy>=1.0.0",
@@ -76,7 +69,6 @@ extra-dependencies = [
 [tool.hatch.envs.types.scripts]
 check = "mypy --install-types --non-interactive {args:src/webapp_mangetamain tests}"
 
-# Ruff (PEP8 + linting)
 [tool.ruff.lint]
 select = ["E", "F", "W"]
 ignore = ["E501"]
@@ -85,7 +77,6 @@ ignore = ["E501"]
 line-length = 88
 exclude = ["venv", "build", "__pycache__", "migrations"]
 
-# Coverage configuration
 [tool.coverage.run]
 source_pkgs = ["webapp_mangetamain", "tests"]
 branch = true
