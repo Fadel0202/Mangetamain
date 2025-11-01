@@ -38,26 +38,50 @@ CONFIG_PATH = os.path.abspath(CONFIG_PATH)
 
 cfg = Config.from_json(CONFIG_PATH)
 
-# URL de la GitHub Release
-GITHUB_RELEASE_URL = "https://github.com/Fadel0202/Mangetamain/releases/download/v1.0.0/data.zip"
+# Détection automatique : Streamlit Cloud ou local
+IS_STREAMLIT_CLOUD = os.getenv("STREAMLIT_SHARING_MODE") is not None or os.path.exists("/mount/src")
+
+# URL selon l'environnement
+if IS_STREAMLIT_CLOUD:
+    GITHUB_RELEASE_URL = "https://github.com/Fadel0202/Mangetamain/releases/download/v1.0.0/data_sample.zip"
+    DATA_FILES = {
+        "data_path": "data/RAW_recipes_sample.csv",
+        "data_rating_path": "data/recipes_with_ratings_sample.csv"
+    }
+else:
+    GITHUB_RELEASE_URL = "https://github.com/Fadel0202/Mangetamain/releases/download/v1.0.0/data.zip"
+    DATA_FILES = {
+        "data_path": cfg.data_path,
+        "data_rating_path": cfg.data_rating_path
+    }
 
 
 def download_data_if_needed():
     """Télécharge les données depuis GitHub Release si elles n'existent pas."""
     data_dir = Path("data")
-    recipe_file = data_dir / "RAW_recipes.csv"
+    
+    # Déterminer quel fichier vérifier
+    if IS_STREAMLIT_CLOUD:
+        recipe_file = data_dir / "RAW_recipes_sample.csv"
+        file_size = "~20 Mo"
+    else:
+        recipe_file = data_dir / "RAW_recipes.csv"
+        file_size = "~168 Mo"
 
     if recipe_file.exists():
         return
 
-    print("Téléchargement des données...")
+    env_name = "Streamlit Cloud (échantillon)" if IS_STREAMLIT_CLOUD else "Local (données complètes)"
+    print(f"Téléchargement des données pour {env_name} ({file_size})...")
 
     try:
         data_dir.mkdir(exist_ok=True)
         response = requests.get(GITHUB_RELEASE_URL, timeout=300, stream=True)
         response.raise_for_status()
 
-        zip_path = "data.zip"
+        zip_name = "data_sample.zip" if IS_STREAMLIT_CLOUD else "data.zip"
+        zip_path = zip_name
+        
         with open(zip_path, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:
@@ -70,7 +94,7 @@ def download_data_if_needed():
         print("Données téléchargées!")
 
     except Exception as e:
-        print(f" Erreur: {e}")
+        print(f"Erreur: {e}")
         raise
 
 
@@ -82,9 +106,8 @@ if HAS_STREAMLIT:
     @st.cache_data
     def get_recipe_data():
         """Charge les données de recettes (avec cache Streamlit)."""
-        # Charger seulement les colonnes nécessaires pour économiser la mémoire
         return pd.read_csv(
-            cfg.data_path,
+            DATA_FILES["data_path"],
             dtype={
                 'minutes': 'int32',
                 'n_steps': 'int16',
@@ -95,7 +118,7 @@ if HAS_STREAMLIT:
     @st.cache_data
     def get_recipe_rating_data():
         """Charge les données de ratings (avec cache Streamlit)."""
-        return pd.read_csv(cfg.data_rating_path)
+        return pd.read_csv(DATA_FILES["data_rating_path"])
 else:
     # Fallback sans Streamlit
     _recipe_cache = None
@@ -105,14 +128,14 @@ else:
         """Charge les données de recettes."""
         global _recipe_cache
         if _recipe_cache is None:
-            _recipe_cache = pd.read_csv(cfg.data_path)
+            _recipe_cache = pd.read_csv(DATA_FILES["data_path"])
         return _recipe_cache
 
     def get_recipe_rating_data():
         """Charge les données de ratings."""
         global _recipe_rating_cache
         if _recipe_rating_cache is None:
-            _recipe_rating_cache = pd.read_csv(cfg.data_rating_path)
+            _recipe_rating_cache = pd.read_csv(DATA_FILES["data_rating_path"])
         return _recipe_rating_cache
 
 

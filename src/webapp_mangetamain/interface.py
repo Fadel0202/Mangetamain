@@ -12,9 +12,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Message pour Streamlit Cloud
-st.info("🚀 Application hébergée sur Streamlit Cloud - Données complètes (~230k recettes)")
-
 # Imports après la config Streamlit
 import ingredients_analyzer
 import utils.filter_data as filter_data
