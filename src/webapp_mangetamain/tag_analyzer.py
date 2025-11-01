@@ -8,7 +8,11 @@ from typing import Dict, List, Tuple, Any, Iterable
 
 import streamlit as st
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')  # Backend non-interactif pour économiser la mémoire
 import matplotlib.pyplot as plt
+# Limiter la mémoire des graphiques
+plt.rcParams['figure.max_open_warning'] = 0
 
 TAGS_OF_INTEREST = {
     "Cuisine": [

@@ -8,6 +8,13 @@ from pathlib import Path
 import pandas as pd
 import requests
 
+# Importer streamlit pour le cache
+try:
+    import streamlit as st
+    HAS_STREAMLIT = True
+except ImportError:
+    HAS_STREAMLIT = False
+
 
 class Config:
     """Simple config loader that allows attribute-style access."""
@@ -31,7 +38,7 @@ CONFIG_PATH = os.path.abspath(CONFIG_PATH)
 
 cfg = Config.from_json(CONFIG_PATH)
 
-# URL de la GitHub Release (juste data/, les artifacts sont dans Git)
+# URL de la GitHub Release
 GITHUB_RELEASE_URL = "https://github.com/Fadel0202/Mangetamain/releases/download/v1.0.0/data.zip"
 
 
@@ -40,84 +47,76 @@ def download_data_if_needed():
     data_dir = Path("data")
     recipe_file = data_dir / "RAW_recipes.csv"
 
-    # Si les données existent déjà, ne rien faire
     if recipe_file.exists():
-        print("Données déjà présentes")
         return
 
-    print("Téléchargement des données depuis GitHub Release (168 Mo, ~30-40 secondes)...")
+    print("Téléchargement des données...")
 
     try:
-        # Créer le dossier data
         data_dir.mkdir(exist_ok=True)
-
-        # Télécharger le zip
         response = requests.get(GITHUB_RELEASE_URL, timeout=300, stream=True)
         response.raise_for_status()
 
         zip_path = "data.zip"
-        total_size = int(response.headers.get('content-length', 0))
-        downloaded = 0
-
         with open(zip_path, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:
                     f.write(chunk)
-                    downloaded += len(chunk)
-                    # Afficher la progression tous les 10 Mo
-                    if downloaded % (10 * 1024 * 1024) == 0:
-                        progress = (downloaded / total_size * 100) if total_size else 0
-                        print(f"   Progression: {progress:.1f}%")
 
-        print("Extraction des données...")
-        # Dézipper
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
             zip_ref.extractall(".")
 
-        # Nettoyer
         os.remove(zip_path)
-        print("Données téléchargées et extraites avec succès!")
+        print("Données téléchargées!")
 
     except Exception as e:
-        print(f"Erreur lors du téléchargement des données: {e}")
+        print(f" Erreur: {e}")
         raise
 
 
-# Télécharger les données au chargement du module (une seule fois)
+# Télécharger les données au chargement du module
 download_data_if_needed()
 
-# Lazy loading des données - Ne charge que quand nécessaire
-_recipe_cache = None
-_recipe_rating_cache = None
+# Utiliser le cache Streamlit pour économiser la mémoire
+if HAS_STREAMLIT:
+    @st.cache_data
+    def get_recipe_data():
+        """Charge les données de recettes (avec cache Streamlit)."""
+        # Charger seulement les colonnes nécessaires pour économiser la mémoire
+        return pd.read_csv(
+            cfg.data_path,
+            dtype={
+                'minutes': 'int32',
+                'n_steps': 'int16',
+                'n_ingredients': 'int16'
+            }
+        )
+
+    @st.cache_data
+    def get_recipe_rating_data():
+        """Charge les données de ratings (avec cache Streamlit)."""
+        return pd.read_csv(cfg.data_rating_path)
+else:
+    # Fallback sans Streamlit
+    _recipe_cache = None
+    _recipe_rating_cache = None
+
+    def get_recipe_data():
+        """Charge les données de recettes."""
+        global _recipe_cache
+        if _recipe_cache is None:
+            _recipe_cache = pd.read_csv(cfg.data_path)
+        return _recipe_cache
+
+    def get_recipe_rating_data():
+        """Charge les données de ratings."""
+        global _recipe_rating_cache
+        if _recipe_rating_cache is None:
+            _recipe_rating_cache = pd.read_csv(cfg.data_rating_path)
+        return _recipe_rating_cache
 
 
-def get_recipe_data():
-    """
-    Charge les données de recettes (avec cache).
-
-    Returns:
-        pd.DataFrame: Les données de recettes
-    """
-    global _recipe_cache
-    if _recipe_cache is None:
-        _recipe_cache = pd.read_csv(cfg.data_path)
-    return _recipe_cache
-
-
-def get_recipe_rating_data():
-    """
-    Charge les données de ratings (avec cache).
-
-    Returns:
-        pd.DataFrame: Les données de ratings
-    """
-    global _recipe_rating_cache
-    if _recipe_rating_cache is None:
-        _recipe_rating_cache = pd.read_csv(cfg.data_rating_path)
-    return _recipe_rating_cache
-
-
-# Ces proxies permettent d'accéder aux données de manière transparente
+# Proxy pour compatibilité
 class _DataFrameProxy:
     """Proxy pour charger DataFrame uniquement quand accédé."""
 
@@ -146,6 +145,6 @@ class _DataFrameProxy:
         return str(self._load())
 
 
-# Variables pour compatibilité avec l'ancien code
+# Variables pour compatibilité
 recipe = _DataFrameProxy(get_recipe_data)
 recipe_rating = _DataFrameProxy(get_recipe_rating_data)

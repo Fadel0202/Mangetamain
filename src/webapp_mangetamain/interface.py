@@ -1,9 +1,22 @@
-"main function of the stremlit app"
+"""main function of the streamlit app"""
 
 import logging
 
-import ingredients_analyzer
 import streamlit as st
+
+# Configuration de la page - DOIT être la première commande Streamlit
+st.set_page_config(
+    page_title="Mange Ta Main - Analyse de Recettes",
+    page_icon="🍽️",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+# Message pour Streamlit Cloud
+st.info("🚀 Application hébergée sur Streamlit Cloud - Données complètes (~230k recettes)")
+
+# Imports après la config Streamlit
+import ingredients_analyzer
 import utils.filter_data as filter_data
 from nutriscore_analyzer import (
     add_nutriscore_column,
@@ -375,7 +388,7 @@ def render_ingredient_tab():
     - **Cooking contexts**
 
     Example:
-    Choosing **‘low-fat milk’** suggests ingredients such as:
+    Choosing **'low-fat milk'** suggests ingredients such as:
     `whole wheat flour`, `egg whites`, `canola oil`, `cooking spray`.
 
     ## Interpretation:
@@ -609,7 +622,8 @@ def render_local_food_tab():
 def main():
     """Main function to run the MangeTaMain Dashboard."""
     # App title
-    st.title("MangeTaMain Dashboard")
+    st.title("🍽️ MangeTaMain Dashboard")
+    st.caption("Analyse exploratoire de 230 000+ recettes de cuisine")
 
     # Create tabs
     tab1, tab2, tab3, tab4, tab5 = st.tabs(
